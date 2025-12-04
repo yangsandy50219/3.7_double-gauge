@@ -49,8 +49,8 @@ function drawGauge({
   const tooltip = document.getElementById("gaugeTooltip");
 
   const centerX = cvs.width / 2;
-  const centerY = cvs.height - 120;
-  const baseRadius = 80 + data.length * gap;
+  const centerY = cvs.height - 135;
+  const baseRadius = 75 + data.length * gap;
 
   const startAngle = -Math.PI; // 左端（180°）
   const fullAngle = Math.PI;   // 半圓（180°）
@@ -103,7 +103,7 @@ function drawGauge({
     ctx.font = 'bold 28px "Microsoft JhengHei"';
     ctx.fillStyle = "#222";
     ctx.textAlign = "center";
-    ctx.fillText(title, centerX, 170);
+    ctx.fillText(title, centerX, 155);
 
     // 弧線
     data.forEach((d, i) => {
