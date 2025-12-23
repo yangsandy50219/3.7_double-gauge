@@ -1,200 +1,260 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
+
 <head>
-<meta charset="UTF-8">
-<title>半圓儀表圖模組版</title>
-<style>
-  body, html {
-    margin: 0; padding: 0; background: #fafafa;
-    display: flex; justify-content: center; align-items: center; height: 100%;
-    font-family: "Microsoft JhengHei", Arial, sans-serif;
-  }
-  canvas { 
-    background: white; border-radius: 24px; 
-    box-shadow: 0 15px 40px rgba(0,0,0,0.12);
-  }
-  .gauge-tooltip {
-    position: fixed; background: rgba(0,0,0,0.85); color: white;
-    padding: 10px 16px; border-radius: 8px; font-size: 16px;
-    pointer-events: none; opacity: 0; transition: opacity 0.2s; z-index: 100;
-  }
-</style>
+  <meta charset="UTF-8">
+  <title>半圓儀表圖模組版</title>
+  <style>
+    body,
+    html {
+      margin: 0;
+      padding: 0;
+      background: #fafafa;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100%;
+      font-family: "Microsoft JhengHei", Arial, sans-serif;
+    }
+
+    canvas {
+      background: white;
+      border-radius: 24px;
+      box-shadow: 0 15px 40px rgba(0, 0, 0, 0.12);
+    }
+
+    .gauge-tooltip {
+      position: fixed;
+      background: rgba(0, 0, 0, 0.85);
+      color: white;
+      padding: 10px 16px;
+      border-radius: 8px;
+      font-size: 16px;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.2s;
+      z-index: 100;
+    }
+  </style>
 </head>
+
 <body>
 
-<canvas id="gauge" width="700" height="550"></canvas>
-<div class="gauge-tooltip" id="gaugeTooltip"></div>
+  <canvas id="gauge" width="700" height="550"></canvas>
+  <div class="gauge-tooltip" id="gaugeTooltip"></div>
 
-<script>
-/* =========================================================
-    ★★★★★  半圓儀表圖 模組化版本  ★★★★★
-    支援：
-      ✔ 多層（N 層）半圓
-      ✔ 0–100% 精準上半圓
-      ✔ 刻度（每 10% 一格、每 20% 標示）
-      ✔ 懸停高亮 & Tooltip
-      ✔ 自動半徑排版
-========================================================= */
+  <script>
+    /* =========================================================
+        ★★★★★  半圓儀表圖 模組化版本  ★★★★★
+        支援：
+          ✔ 多層（N 層）半圓
+          ✔ 0–100% 精準上半圓
+          ✔ 刻度（每 10% 一格、每 20% 標示）
+          ✔ 懸停高亮 & Tooltip
+          ✔ 自動半徑排版
+    ========================================================= */
 
-function drawGauge({
-  canvas,
-  title = "",
-  data = [],  // [{ label, value, color }]
-  baseWidth = 38,
-  gap = 55,   // 層與層之間距離
-}) {
+    function drawGauge({
+      canvas,
+      title = "",
+      data = [],  // [{ label, value, color }]
+      baseWidth = 38,
+      gap = 55,   // 層與層之間距離
+    }) {
 
-  const cvs = document.querySelector(canvas);
-  const ctx = cvs.getContext("2d");
-  const tooltip = document.getElementById("gaugeTooltip");
+      const cvs = document.querySelector(canvas);
+      const ctx = cvs.getContext("2d");
+      const tooltip = document.getElementById("gaugeTooltip");
 
-  const centerX = cvs.width / 2;
-  const centerY = cvs.height - 150;
-  const baseRadius = 75 + data.length * gap;
+      const centerX = cvs.width / 2;
+      const centerY = cvs.height - 150;
+      const baseRadius = 75 + data.length * gap;
 
-  const startAngle = -Math.PI; // 左端（180°）
-  const fullAngle = Math.PI;   // 半圓（180°）
+      const startAngle = -Math.PI; // 左端（180°）
+      const fullAngle = Math.PI;   // 半圓（180°）
 
-  function percentToAngle(p) {
-    return startAngle + (p / 100) * fullAngle;
-  }
-
-  /* ====== 刻度 ====== */
-  function drawTicks(outerRadius) {
-    const tickOuter = outerRadius + 35; // 刻度外端
-    const tickInner = outerRadius + 15; // 刻度內端
-    const labelDist = outerRadius + 50; // 文字位置
-
-    ctx.strokeStyle = "#cccccc";
-    ctx.fillStyle = "#666";
-    ctx.font = '16px "Microsoft JhengHei"';
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.lineWidth = 2;
-
-    for (let i = 0; i <= 10; i++) {
-      const pct = i * 10;
-      const ang = percentToAngle(pct);
-      const cos = Math.cos(ang);
-      const sin = Math.sin(ang);
-
-      // 刻度線
-      ctx.beginPath();
-      ctx.moveTo(centerX + tickInner * cos, centerY + tickInner * sin);
-      ctx.lineTo(centerX + tickOuter * cos, centerY + tickOuter * sin);
-      ctx.stroke();
-
-      // 每 20% 加數字
-      if (pct % 20 === 0) {
-        ctx.fillText(
-          pct + "%",
-          centerX + labelDist * cos,
-          centerY + labelDist * sin
-        );
+      function percentToAngle(p) {
+        return startAngle + (p / 100) * fullAngle;
       }
-    }
-  }
 
-  /* ====== 主繪製 ====== */
-  function render(hoverIndex = null) {
-    ctx.clearRect(0, 0, cvs.width, cvs.height);
+      /* ====== 刻度 ====== */
+      function drawTicks(outerRadius) {
+        const tickOuter = outerRadius + 35; // 刻度外端
+        const tickInner = outerRadius + 15; // 刻度內端
+        const labelDist = outerRadius + 50; // 文字位置
 
-    // 標題（⭐ 往下移 60px：80 → 140）
-    ctx.font = 'bold 28px "Microsoft JhengHei"';
-    ctx.fillStyle = "#222";
-    ctx.textAlign = "center";
-    ctx.fillText(title, centerX, 140);
+        ctx.strokeStyle = "#cccccc";
+        ctx.fillStyle = "#666";
+        ctx.font = '16px "Microsoft JhengHei"';
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.lineWidth = 2;
 
-    // 弧線
-    data.forEach((d, i) => {
-      const radius = baseRadius - i * gap;
-      const angle = percentToAngle(d.value);
+        for (let i = 0; i <= 10; i++) {
+          const pct = i * 10;
+          const ang = percentToAngle(pct);
+          const cos = Math.cos(ang);
+          const sin = Math.sin(ang);
 
-      // 軌道底色
-      ctx.beginPath();
-      ctx.arc(centerX, centerY, radius, startAngle, startAngle + fullAngle);
-      ctx.lineWidth = baseWidth;
-      ctx.strokeStyle = "#e8e8e8";
-      ctx.stroke();
+          // 刻度線
+          ctx.beginPath();
+          ctx.moveTo(centerX + tickInner * cos, centerY + tickInner * sin);
+          ctx.lineTo(centerX + tickOuter * cos, centerY + tickOuter * sin);
+          ctx.stroke();
 
-      // 彩色進度條
-      ctx.beginPath();
-      ctx.arc(centerX, centerY, radius, startAngle, angle);
-      ctx.lineWidth = (hoverIndex === i ? baseWidth + 10 : baseWidth - 4);
-      ctx.strokeStyle = (hoverIndex === i)
-        ? d.color.replace("0.5", "0.8")
-        : d.color;
-      ctx.lineCap = "round";
-      ctx.stroke();
-    });
-
-    // 中心文字
-    ctx.textAlign = "center";
-    ctx.font = '22px "Microsoft JhengHei"';
-    ctx.fillStyle = "#444";
-
-    data.forEach((d, i) => {
-      ctx.fillText(`${d.label}：${d.value}%`, centerX, centerY - 40 + i * 40);
-    });
-
-    // 刻度永遠畫在最後
-    drawTicks(baseRadius);
-  }
-
-  render();
-
-  /* ====== Hover detection ====== */
-  cvs.addEventListener("mousemove", e => {
-    const rect = cvs.getBoundingClientRect();
-    const mx = e.clientX - rect.left;
-    const my = e.clientY - rect.top;
-
-    const dx = mx - centerX;
-    const dy = my - centerY;
-    const dist = Math.hypot(dx, dy);
-    const ang = Math.atan2(dy, dx);
-
-    let hoverIndex = null;
-
-    data.forEach((d, i) => {
-      const radius = baseRadius - i * gap;
-      const angle = percentToAngle(d.value);
-
-      // 判斷是否在該弧線範圍附近
-      if (Math.abs(dist - radius) < baseWidth &&
-          ang >= startAngle && ang <= angle) {
-        hoverIndex = i;
+          // 每 20% 加數字
+          if (pct % 20 === 0) {
+            ctx.fillText(
+              pct + "%",
+              centerX + labelDist * cos,
+              centerY + labelDist * sin
+            );
+          }
+        }
       }
-    });
 
-    if (hoverIndex !== null) {
-      tooltip.textContent = `${data[hoverIndex].label}：${data[hoverIndex].value}%`;
-      tooltip.style.left = (e.clientX + 15) + "px";
-      tooltip.style.top = (e.clientY + 15) + "px";
-      tooltip.style.opacity = "1";
-    } else {
-      tooltip.style.opacity = "0";
+      /* ====== 主繪製 ====== */
+      function render(hoverIndex = null) {
+        ctx.clearRect(0, 0, cvs.width, cvs.height);
+
+        // 標題（⭐ 往下移 60px：80 → 140）
+        ctx.font = 'bold 28px "Microsoft JhengHei"';
+        ctx.fillStyle = "#222";
+        ctx.textAlign = "center";
+        ctx.fillText(title, centerX, 140);
+
+        // 弧線
+        data.forEach((d, i) => {
+          const radius = baseRadius - i * gap;
+          const angle = percentToAngle(d.value);
+
+          // 軌道底色
+          ctx.beginPath();
+          ctx.arc(centerX, centerY, radius, startAngle, startAngle + fullAngle);
+          ctx.lineWidth = baseWidth;
+          ctx.strokeStyle = "#e8e8e8";
+          ctx.stroke();
+
+          // 彩色進度條
+          ctx.beginPath();
+          ctx.arc(centerX, centerY, radius, startAngle, angle);
+          ctx.lineWidth = (hoverIndex === i ? baseWidth + 10 : baseWidth - 4);
+          ctx.strokeStyle = (hoverIndex === i)
+            ? d.color.replace("0.5", "0.8")
+            : d.color;
+          ctx.lineCap = "round";
+          ctx.stroke();
+        });
+
+        // 中心文字（含「低於全國值」警示）
+        ctx.textAlign = "center";
+        ctx.font = '22px "Microsoft JhengHei"';
+
+        const taipei = data.find(d => d.label === "台北市");
+        const national = data.find(d => d.label === "全國");
+
+        // 台北市
+        if (taipei && national && taipei.value < national.value) {
+          ctx.fillStyle = "#d32f2f"; // 紅色
+
+          // 第一行：一般字重
+          ctx.font = '22px "Microsoft JhengHei"';
+          ctx.fillText(
+            `台北市：${taipei.value}%`,
+            centerX,
+            centerY - 55
+          );
+
+          // 第二行：只加粗這一句
+          ctx.font = 'bold 24px "Microsoft JhengHei"';
+          ctx.fillText(
+            "⚠低於全國值！",
+            centerX,
+            centerY - 25
+          );
+
+        } else if (taipei) {
+          ctx.fillStyle = "#444";
+          ctx.font = '22px "Microsoft JhengHei"';
+          ctx.fillText(
+            `台北市：${taipei.value}%`,
+            centerX,
+            centerY - 55
+          );
+        }
+
+        // 全國
+        if (national) {
+          ctx.fillStyle = "#444";
+          ctx.font = '22px "Microsoft JhengHei"';
+          ctx.fillText(
+            `全國：${national.value}%`,
+            centerX,
+            centerY+5
+          );
+        }
+
+
+
+        // 刻度永遠畫在最後
+        drawTicks(baseRadius);
+      }
+
+      render();
+
+      /* ====== Hover detection ====== */
+      cvs.addEventListener("mousemove", e => {
+        const rect = cvs.getBoundingClientRect();
+        const mx = e.clientX - rect.left;
+        const my = e.clientY - rect.top;
+
+        const dx = mx - centerX;
+        const dy = my - centerY;
+        const dist = Math.hypot(dx, dy);
+        const ang = Math.atan2(dy, dx);
+
+        let hoverIndex = null;
+
+        data.forEach((d, i) => {
+          const radius = baseRadius - i * gap;
+          const angle = percentToAngle(d.value);
+
+          // 判斷是否在該弧線範圍附近
+          if (Math.abs(dist - radius) < baseWidth &&
+            ang >= startAngle && ang <= angle) {
+            hoverIndex = i;
+          }
+        });
+
+        if (hoverIndex !== null) {
+          tooltip.textContent = `${data[hoverIndex].label}：${data[hoverIndex].value}%`;
+          tooltip.style.left = (e.clientX + 15) + "px";
+          tooltip.style.top = (e.clientY + 15) + "px";
+          tooltip.style.opacity = "1";
+        } else {
+          tooltip.style.opacity = "0";
+        }
+
+        render(hoverIndex);
+      });
+
+      cvs.addEventListener("mouseout", () => {
+        tooltip.style.opacity = "0";
+        render();
+      });
     }
 
-    render(hoverIndex);
-  });
-
-  cvs.addEventListener("mouseout", () => {
-    tooltip.style.opacity = "0";
-    render();
-  });
-}
-
-/* ====== ★ 呼叫模組：示範 ★ ====== */
-drawGauge({
-  canvas: "#gauge",
-  title: "2023年台北市與全國孕婦產前檢查利用率",
-  data: [
-    { label: "台北市", value: 92.3, color: "rgba(89,156,73,0.5)" },
-    { label: "全國",   value: 96.8, color: "rgba(130,87,194,0.5)" }
-  ]
-});
-</script>
+    /* ====== ★ 呼叫模組：示範 ★ ====== */
+    drawGauge({
+      canvas: "#gauge",
+      title: "2023年台北市與全國孕婦產前檢查利用率",
+      data: [
+        { label: "台北市", value: 92.3, color: "rgba(89,156,73,0.5)" },
+        { label: "全國", value: 96.8, color: "rgba(130,87,194,0.5)" }
+      ]
+    });
+  </script>
 
 </body>
+
 </html>
